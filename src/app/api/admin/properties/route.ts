@@ -28,22 +28,117 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { admin } = await requireAdmin(request, "properties.create");
+    const { admin } = await requireAdmin(
+      request,
+      "properties.create",
+    );
+
     await connectDb();
-    const body = await readJson<{ listingKind?: string; name?: string; currentStep?: string; sections?: Record<string, unknown> }>(request);
-    if (!["rental-property", "construction-project"].includes(body.listingKind || "")) throw new HttpError(400, "INVALID_PROPERTY_TYPE", "Property must be a rental property or construction project.");
-    const property = await Property.create({
-      name: body.name || "Untitled property",
-      type: body.listingKind === "construction-project" ? "construction" : "rental",
+
+    const body = await readJson<{
+      listingKind?: string;
+      name?: string;
+      currentStep?: string;
+      sections?: Record<string, unknown>;
+    }>(request);
+
+    const listingKind = body.listingKind?.trim();
+
+    if (
+      !listingKind ||
+      ![
+        "rental-property",
+        "construction-project",
+      ].includes(listingKind)
+    ) {
+      throw new HttpError(
+        400,
+        "INVALID_PROPERTY_TYPE",
+        "Property must be a rental property or construction project.",
+      );
+    }
+
+    /*
+     * Do not use Property.create() here.
+     * It inserts the document before derivePropertyFields() runs.
+     */
+    const property = new Property({
+      name: body.name?.trim() || "Untitled property",
+      type:
+        listingKind === "construction-project"
+          ? "construction"
+          : "rental",
       status: "draft",
-      metadata: { wizardVersion: 1, listingKind: body.listingKind, currentStep: body.currentStep || "basicPropertyInformation", completedSteps: [], sections: body.sections || {} },
+      metadata: {
+        wizardVersion: 1,
+        listingKind,
+        currentStep:
+          body.currentStep?.trim() ||
+          "basicPropertyInformation",
+        completedSteps: [],
+        sections: body.sections || {},
+      },
       createdBy: admin._id,
     });
+
     derivePropertyFields(property);
+
+    /*
+     * Final protection: never allow an empty slug to reach MongoDB.
+     */
+    if (
+      !property.slug ||
+      !String(property.slug).trim()
+    ) {
+      const suffix = String(property._id).slice(-8);
+
+      property.slug = `property-${suffix}`;
+    }
+
+    console.log("Creating property with slug:", {
+      id: String(property._id),
+      slug: property.slug,
+      name: property.name,
+      isNew: property.isNew,
+    });
+
     await property.save();
-    await recordActivity({ request, admin, action: "Created property draft", operation: "create", resourceType: "property", resourceId: String(property._id), resourceName: property.name });
-    await beginPropertyProvisioning(String(property._id));
-    const provisioned = await Property.findById(property._id);
+
+    await recordActivity({
+      request,
+      admin,
+      action: "Created property draft",
+      operation: "create",
+      resourceType: "property",
+      resourceId: String(property._id),
+      resourceName: property.name,
+    });
+
+    try {
+      await beginPropertyProvisioning(
+        String(property._id),
+      );
+    } catch (provisioningError) {
+      console.error(
+        "Property provisioning failed:",
+        provisioningError,
+      );
+    }
+
+    const provisioned = await Property.findById(
+      property._id,
+    );
+
+    if (!provisioned) {
+      throw new HttpError(
+        404,
+        "PROPERTY_NOT_FOUND",
+        "The property was created but could not be reloaded.",
+      );
+    }
+
     return ok(propertyDetail(provisioned), 201);
-  } catch (error) { return handleRouteError(error); }
+  } catch (error) {
+    return handleRouteError(error);
+  }
 }
