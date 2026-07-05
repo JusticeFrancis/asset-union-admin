@@ -1,0 +1,23 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="40"
+  height="40"
+  fill="none"
+  viewBox="0 0 40 40"
+  aria-hidden="true"
+>
+  <circle
+    cx="20"
+    cy="20"
+    r="19"
+    fill="#F5F7F8"
+    stroke="#CFE2EC"
+    stroke-width="1"
+  />
+  <path
+    d="M20 13v14M13 20h14"
+    stroke="#4A5055"
+    stroke-width="1.5"
+    stroke-linecap="round"
+  />
+</svg>

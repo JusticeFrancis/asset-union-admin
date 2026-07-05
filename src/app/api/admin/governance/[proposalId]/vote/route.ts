@@ -1,0 +1,7 @@
+import { NextRequest } from "next/server";
+import { GovernanceProposal, GovernanceVote } from "@/models";
+import { requireAdmin } from "@/lib/server/auth";
+import { handleRouteError, HttpError, ok, readJson } from "@/lib/server/http";
+import { recordActivity } from "@/lib/server/activity";
+
+export async function POST(request:NextRequest,context:{params:Promise<{proposalId:string}>}){try{const{admin}=await requireAdmin(request,"governance.vote");const{proposalId}=await context.params;const body=await readJson<{choice?:string;votingPower?:number}>(request);if(!["for","against","abstain"].includes(body.choice||""))throw new HttpError(400,"INVALID_VOTE","Select for, against, or abstain.");const proposal=await GovernanceProposal.findById(proposalId);if(!proposal)throw new HttpError(404,"NOT_FOUND","Proposal not found.");if(proposal.status!=="active"||new Date(proposal.closesAt)<=new Date())throw new HttpError(409,"VOTING_CLOSED","Voting is closed for this proposal.");const vote=await GovernanceVote.findOneAndUpdate({proposalId,voterAdminId:admin._id},{$set:{choice:body.choice,votingPower:Math.max(1,Number(body.votingPower||1))}},{new:true,upsert:true,setDefaultsOnInsert:true});await recordActivity({request,admin,action:`Voted ${body.choice} on governance proposal`,operation:"update",resourceType:"governance_vote",resourceId:String(vote._id),resourceName:proposal.title,metadata:{proposalId,choice:body.choice}});return ok({id:String(vote._id),choice:vote.choice,votingPower:vote.votingPower});}catch(error){return handleRouteError(error);}}

@@ -1,0 +1,19 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="15"
+  height="14"
+  fill="none"
+  viewBox="0 0 15 14"
+  aria-hidden="true"
+>
+  <rect
+    width="13"
+    height="13"
+    x="1"
+    y="0.5"
+    fill="#fff"
+    rx="4"
+    stroke="#CFE2EC"
+    stroke-width="1"
+  />
+</svg>

@@ -1,0 +1,19 @@
+export type ApiErrorBody = {
+  error: {
+    code: string;
+    message: string;
+    details?: unknown;
+  };
+};
+
+export class ApiError extends Error {
+  code: string;
+  details?: unknown;
+
+  constructor(code: string, message: string, details?: unknown) {
+    super(message);
+    this.name = "ApiError";
+    this.code = code;
+    this.details = details;
+  }
+}
