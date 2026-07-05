@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 const tabs = [
   { label: "Account", href: "/settings/account-information", permission: "settings.view" },
   { label: "Security & Privacy", href: "/settings", permission: "settings.view" },
-  { label: "Platform Fee", href: "/settings/platform-fee", permission: "platform_settings.view" },
+  // { label: "Platform Fee", href: "/settings/platform-fee", permission: "platform_settings.view" },
 ] as const;
 
 export function SettingsTabs() {
