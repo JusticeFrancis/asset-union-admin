@@ -225,6 +225,11 @@ export function BasicPropertyForm({ listingKind }: BasicPropertyFormProps) {
                 <option value="">Select type</option>
                 <option value="apartment">Apartment</option>
                 <option value="villa">Villa</option>
+                <option value="condo">Condo</option>
+                <option value="duplex">Duplex</option>
+                <option value="office_space">Office Space</option>
+                <option value="event_hall">Event Hall</option>
+                <option value="skyscrapper">Skyscrapper</option>
               </>
             ) : (
               <>
