@@ -44,18 +44,102 @@ export function propertyListItem(property: any) {
 
 export function derivePropertyFields(property: any) {
   const sections = property.metadata?.sections || {};
-  const basic = sections.basicPropertyInformation || {};
-  const management = sections.propertyManagement || {};
-  const funding = sections.fundingStructure || sections.investmentStructure || sections.rentalEconomics || {};
-  property.name = basic.propertyName || property.name || "Untitled property";
-  property.slug = String(property.name).toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-  property.type = property.metadata?.listingKind === "construction-project" ? "construction" : "rental";
-  property.location = [basic.city, basic.region, basic.country].filter(Boolean).join(", ");
-  property.heroImage = basic.coverImageUrl || property.heroImage || "";
-  property.gallery = Array.isArray(basic.galleryUrls) ? basic.galleryUrls : property.gallery || [];
-  property.managerName = management.managerName || management.propertyManagerName || management.managerCompanyName || property.managerName || "";
-  property.managerRole = management.managerRole || property.managerRole || "Property Manager";
-  property.fundingTarget = Number(funding.fundingTarget || funding.totalFundingTarget || funding.totalFundingGoal || funding.propertyValue || funding.propertyValuation || property.fundingTarget || 0);
-  property.currentStage = property.status === "draft" ? "Draft" : property.status[0].toUpperCase() + property.status.slice(1);
+
+  const basic =
+    sections.basicPropertyInformation || {};
+
+  const management =
+    sections.propertyManagement || {};
+
+  const funding =
+    sections.fundingStructure ||
+    sections.investmentStructure ||
+    sections.rentalEconomics ||
+    {};
+
+  property.name =
+    String(
+      basic.propertyName ||
+        property.name ||
+        "Untitled property",
+    ).trim();
+
+  const baseSlug = property.name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  const uniqueSuffix = property._id
+    ? String(property._id).slice(-8)
+    : Math.random().toString(36).slice(2, 10);
+
+  /*
+   * Preserve an existing published slug so public URLs do not change.
+   * Draft properties can update their slug when the property name changes.
+   */
+  if (!property.slug || property.status === "draft") {
+    property.slug = `${
+      baseSlug || "property"
+    }-${uniqueSuffix}`;
+  }
+
+  property.type =
+    property.metadata?.listingKind ===
+    "construction-project"
+      ? "construction"
+      : "rental";
+
+  property.location = [
+    basic.city,
+    basic.region,
+    basic.country,
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+  property.heroImage =
+    basic.coverImageUrl ||
+    property.heroImage ||
+    "";
+
+  property.gallery = Array.isArray(
+    basic.galleryUrls,
+  )
+    ? basic.galleryUrls
+    : property.gallery || [];
+
+  property.managerName =
+    management.managerName ||
+    management.propertyManagerName ||
+    management.managerCompanyName ||
+    property.managerName ||
+    "";
+
+  property.managerRole =
+    management.managerRole ||
+    property.managerRole ||
+    "Property Manager";
+
+  property.fundingTarget = Number(
+    funding.fundingTarget ||
+      funding.totalFundingTarget ||
+      funding.totalFundingGoal ||
+      funding.propertyValue ||
+      funding.propertyValuation ||
+      property.fundingTarget ||
+      0,
+  );
+
+  const status = String(
+    property.status || "draft",
+  );
+
+  property.currentStage =
+    status === "draft"
+      ? "Draft"
+      : `${status.charAt(0).toUpperCase()}${status.slice(
+          1,
+        )}`;
+
   return property;
 }
