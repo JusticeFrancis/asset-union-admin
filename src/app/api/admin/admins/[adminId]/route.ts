@@ -21,20 +21,38 @@ function assertCanDelegate(actor: any, actorPermissions: string[], role: AdminRo
   }
 }
 
-export async function GET(request: NextRequest, context: { params: Promise<{ adminId: string }> }) {
+type AdminInviteExpiry = {
+  expiresAt?: Date | null;
+};
+
+export async function GET(
+  request: NextRequest,
+  context: { params: Promise<{ adminId: string }> },
+) {
   try {
     await requireAdmin(request, "admins.view");
     await connectDb();
+
     const { adminId } = await context.params;
+
     const admin = await Admin.findById(adminId).lean();
-    if (!admin) throw new HttpError(404, "NOT_FOUND", "Admin not found.");
-    const invite = await AdminInvite.findOne({ adminId }).sort({ createdAt: -1 }).lean();
+
+    if (!admin) {
+      throw new HttpError(404, "NOT_FOUND", "Admin not found.");
+    }
+
+    const invite = (await AdminInvite.findOne({ adminId })
+      .sort({ createdAt: -1 })
+      .select({ expiresAt: 1 })
+      .lean()
+      .exec()) as AdminInviteExpiry | null;
+
     return ok({
       admin: {
         ...serializeAdmin(admin),
         createdAt: (admin as any).createdAt,
         inviteAccepted: Boolean((admin as any).inviteAcceptedAt),
-        inviteExpiresAt: invite?.expiresAt || null,
+        inviteExpiresAt: invite?.expiresAt ?? null,
       },
       permissions: PERMISSIONS,
     });
